@@ -1,0 +1,30 @@
+[package]
+
+name = "staticfilemap"
+description = "Procedural macro to create a static map of compressed files during compilation"
+version = "0.0.0"
+authors = ["Christian Sdunek <me@systemcluster.me>"]
+repository = "https://github.com/Systemcluster/staticfilemap"
+license = "BSD-2-Clause"
+readme = "README.md"
+categories = ["filesystem", "compression", "no-std", "development-tools::build-utils"]
+edition = "2018"
+include = [
+    "Cargo.toml",
+    "src/**/*",
+    "LICENSE",
+]
+
+[lib]
+
+name="staticfilemap"
+path="src/lib.rs"
+proc-macro=true
+
+[dependencies]
+
+minilz4 = { path = "../minilz4", version = "^0.1" }
+
+proc-macro2 = "^1"
+syn = { version = "^1", features = ["parsing"] }
+quote = "^1"
