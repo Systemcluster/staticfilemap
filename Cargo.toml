@@ -2,7 +2,7 @@
 
 name = "staticfilemap"
 description = "Procedural macro to create a static map of compressed files during compilation"
-version = "0.0.0"
+version = "0.1.0"
 authors = ["Christian Sdunek <me@systemcluster.me>"]
 repository = "https://github.com/Systemcluster/staticfilemap"
 license = "BSD-2-Clause"
