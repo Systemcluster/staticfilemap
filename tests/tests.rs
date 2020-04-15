@@ -86,3 +86,16 @@ fn types() {
     let _: &[u8] = StaticMap::get("readme").unwrap();
     let _: &[&str] = StaticMap::keys();
 }
+
+#[test]
+fn implicit_names() {
+    use staticfilemap::*;
+
+    #[derive(StaticFileMap)]
+    #[files = "README.md;LICENSE"]
+    struct StaticMap;
+
+    let content = StaticMap::get("LICENSE").unwrap();
+    let string = String::from_utf8_lossy(&content[..10]);
+    assert!(&string == "Copyright ");
+}

@@ -7,13 +7,14 @@ use std::{
     env::var,
     fs::File,
     io::{copy, BufReader, BufWriter},
-    path::Path,
+    path::{Path, PathBuf},
 };
 use syn::{parse_macro_input, DeriveInput, Lit, Meta, MetaNameValue};
 
 #[proc_macro_derive(StaticFileMap, attributes(parse, names, files, compression))]
 pub fn file_map(input: TokenStream) -> TokenStream {
     let input: DeriveInput = parse_macro_input!(input as DeriveInput);
+
     let get_attr = |name| {
         input.attrs.iter().find(|attr| match attr.path.get_ident() {
             Some(ident) if ident.to_string() == name => true,
@@ -52,19 +53,23 @@ pub fn file_map(input: TokenStream) -> TokenStream {
             name
         ))
     };
+
     let parse = get_attr_str("parse", Some("string".to_string()));
-    let mut names = get_attr_str("names", None);
+    let mut names = get_attr_str("names", Some("".to_string()));
     let mut files = get_attr_str("files", None);
     let compression = get_attr_num("compression", Some(0));
+
     if ["env"].contains(&parse.as_str()) {
-        names = var(&names).expect(&format!(
-            "#[derive(StaticFileMap)] #[names = ..] environment variable {} not found",
-            names
-        ));
         files = var(&files).expect(&format!(
             "#[derive(StaticFileMap)] #[files = ..] environment variable {} not found",
             files,
         ));
+        if !names.is_empty() {
+            names = var(&names).expect(&format!(
+                "#[derive(StaticFileMap)] #[names = ..] environment variable {} not found",
+                names
+            ));
+        }
     } else if ["string"].contains(&parse.as_str()) {
         names = names;
         files = files;
@@ -73,7 +78,8 @@ pub fn file_map(input: TokenStream) -> TokenStream {
             "#[derive(StaticFileMap)] #[parse = ..] supports the following values: \"env\", \"string\""
         )
     }
-    let names = names
+
+    let mut names = names
         .split(";")
         .filter(|s| !s.is_empty())
         .collect::<Vec<_>>();
@@ -81,12 +87,27 @@ pub fn file_map(input: TokenStream) -> TokenStream {
         .split(";")
         .filter(|s| !s.is_empty())
         .collect::<Vec<_>>();
+
+    let file_names = files
+        .iter()
+        .map(|file| {
+            PathBuf::from(file)
+                .file_name()
+                .map(|n| n.to_os_string().to_string_lossy().to_string())
+                .unwrap()
+        })
+        .collect::<Vec<_>>();
+    if names.is_empty() {
+        names = file_names.iter().map(|s| s.as_ref()).collect();
+    }
+
     if names.len() != files.len() {
         panic!(
             "#[derive(StaticFileMap)] #[names = ..] must contain the same number of items as #[files = ..]"
         )
     }
     let len = names.len();
+
     let data = files
         .iter()
         .map(|file| {
@@ -128,6 +149,7 @@ pub fn file_map(input: TokenStream) -> TokenStream {
             buffer
         })
         .collect::<Vec<Vec<u8>>>();
+
     let ident = &input.ident;
     let data_ident = format_ident!("{}Data", ident);
     let trait_ident = format_ident!("{}Trait", ident);
@@ -139,6 +161,7 @@ pub fn file_map(input: TokenStream) -> TokenStream {
         .collect::<Vec<_>>();
     let ids1 = 0..len;
     let ids2 = 0..len;
+
     let result = quote! {
 
         #[allow(non_upper_case_globals)]
