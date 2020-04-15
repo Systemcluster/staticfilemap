@@ -156,6 +156,7 @@ pub fn file_map(input: TokenStream) -> TokenStream {
                 static _k: &'static [&'static str; #len ] = &[ #( #names ),* ];
                 _k
             }
+            #[inline]
             fn get<S: ::core::convert::AsRef<str>>(name: S) -> ::core::option::Option<&'static [u8]> {
                 let name = name.as_ref();
                 #(
