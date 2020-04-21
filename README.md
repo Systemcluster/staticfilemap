@@ -13,9 +13,9 @@ Derive from `StaticFileMap` to create a map.
 
 Specify the files to be included and the names they should be accessed by with the `files` and `names` attributes.
 These can either be strings containing values separated with `;`, or environment variables containing them when the `parse` attribute is set to `env`.
-Relative paths are resolved relative to `CARGO_MANIFEST_DIR`.
+Relative paths are resolved relative to `CARGO_MANIFEST_DIR`. If the `names` attribute is not specified, the names are inferred from the filenames.
 
-The compression level is controlled by the `compression` attribute. With a compression level above `0` the included files are compresed with LZ4. LZ4 accepts a compression level up to 16.
+The compression level is controlled by the `compression` attribute. With a compression level above `0` the included files are compresed with LZ4. LZ4 accepts a compression level up to `12`.
 
 Files can be accessed as `&'static [u8]` slices by the `get(name)` and `get_match(name)` functions at runtime.
 `get_match(name)` accepts partial names if only one name matches. `keys()` returns a list of all keys.
@@ -36,7 +36,7 @@ use staticfilemap::StaticFileMap
 
 #[derive(StaticFileMap)]
 #[names = "a;b;c"]
-#[files = "/path/to/a;/path/to/b;/path/to/c"]
+#[files = "/path/to/file_a;/path/to/file_b;/path/to/file_c"]
 struct StaticMap;
 
 fn main() {
@@ -47,7 +47,7 @@ fn main() {
 
 ```rust
 use staticfilemap::StaticFileMap
-use lz4::Decoder;
+use minilz4::Decode;
 use std::io::Read;
 
 #[derive(StaticFileMap)]
@@ -60,9 +60,6 @@ struct StaticMap;
 fn main() {
     let compressed = StaticMap::get_match("diogenes")
         .expect("file matching diogenes was not included");
-
-    let mut content = Vec::new();
-    let mut decoder = Decoder::new(compressed).unwrap();
-    decoder.read_to_end(&mut content).unwrap();
+    let content = compressed.decode();
 }
 ```
