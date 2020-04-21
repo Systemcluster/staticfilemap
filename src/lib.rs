@@ -195,6 +195,7 @@ pub fn file_map(input: TokenStream) -> TokenStream {
                 )*
                 None
             }
+            #[allow(clippy::useless_let_if_seq)]
             fn get_match<S: ::core::convert::AsRef<str>>(name: S) -> ::core::option::Option<&'static [u8]> {
                 let name = name.as_ref();
                 let mut matches = 0;
