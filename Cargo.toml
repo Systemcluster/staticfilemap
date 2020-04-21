@@ -23,7 +23,7 @@ proc-macro=true
 
 [dependencies]
 
-minilz4 = { path = "../minilz4", version = "^0.2" }
+minilz4 = { path = "../minilz4", version = "^0.4" }
 
 proc-macro2 = "^1"
 syn = { version = "^1", features = ["parsing"] }
