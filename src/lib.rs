@@ -17,7 +17,7 @@ pub fn file_map(input: TokenStream) -> TokenStream {
 
     let get_attr = |name| {
         input.attrs.iter().find(|attr| match attr.path.get_ident() {
-            Some(ident) if ident.to_string() == name => true,
+            Some(ident) if *ident == name => true,
             _ => false,
         })
     };
@@ -32,10 +32,7 @@ pub fn file_map(input: TokenStream) -> TokenStream {
                 _ => None,
             },
         }
-        .expect(&format!(
-            "#[derive(StaticFileMap)] invalid or missing attribute: #[{} = ..], must be a string",
-            name
-        ))
+        .unwrap_or_else(|| panic!("#[derive(StaticFileMap)] invalid or missing attribute: #[{} = ..], must be a string", name))
     };
     let get_attr_num = |name, default: Option<u32>| {
         match get_attr(name) {
@@ -48,10 +45,7 @@ pub fn file_map(input: TokenStream) -> TokenStream {
                 _ => None,
             },
         }
-        .expect(&format!(
-            "#[derive(StaticFileMap)] invalid or missing attribute: #[{} = ..], must be a positive number",
-            name
-        ))
+        .unwrap_or_else(|| panic!("#[derive(StaticFileMap)] invalid or missing attribute: #[{} = ..], must be a positive number", name))
     };
 
     let parse = get_attr_str("parse", Some("string".to_string()));
@@ -60,15 +54,19 @@ pub fn file_map(input: TokenStream) -> TokenStream {
     let compression = get_attr_num("compression", Some(0));
 
     if ["env"].contains(&parse.as_str()) {
-        files = var(&files).expect(&format!(
-            "#[derive(StaticFileMap)] #[files = ..] environment variable {} not found",
-            files,
-        ));
+        files = var(&files).unwrap_or_else(|_| {
+            panic!(
+                "#[derive(StaticFileMap)] #[files = ..] environment variable {} not found",
+                files
+            )
+        });
         if !names.is_empty() {
-            names = var(&names).expect(&format!(
-                "#[derive(StaticFileMap)] #[names = ..] environment variable {} not found",
-                names
-            ));
+            names = var(&names).unwrap_or_else(|_| {
+                panic!(
+                    "#[derive(StaticFileMap)] #[names = ..] environment variable {} not found",
+                    names
+                )
+            });
         }
     } else if ["string"].contains(&parse.as_str()) {
         names = names;
@@ -80,11 +78,11 @@ pub fn file_map(input: TokenStream) -> TokenStream {
     }
 
     let mut names = names
-        .split(";")
+        .split(';')
         .filter(|s| !s.is_empty())
         .collect::<Vec<_>>();
     let files = files
-        .split(";")
+        .split(';')
         .filter(|s| !s.is_empty())
         .collect::<Vec<_>>();
 
@@ -112,11 +110,14 @@ pub fn file_map(input: TokenStream) -> TokenStream {
         .iter()
         .map(|file| {
             let source = Path::new(&var("CARGO_MANIFEST_DIR").unwrap()).join(file);
-            let file = File::open(&source).expect(&format!(
-                "#[derive(StaticFileMap)] file does not exist: {}",
-                source.display()
-            ));
-            let buffer = if compression > 0 {
+            let file = File::open(&source).unwrap_or_else(|_| {
+                panic!(
+                    "#[derive(StaticFileMap)] file does not exist: {}",
+                    source.display()
+                )
+            });
+
+            if compression > 0 {
                 let mut encoder = EncoderBuilder::new()
                     .auto_flush(false)
                     .level(compression)
@@ -127,26 +128,31 @@ pub fn file_map(input: TokenStream) -> TokenStream {
                 {
                     let mut reader = BufReader::new(&file);
                     let mut writer = BufWriter::new(&mut encoder);
-                    copy(&mut reader, &mut writer).expect(&format!(
-                        "#[derive(StaticFileMap)] error reading/compressing file: {}",
-                        source.display()
-                    ));
+                    copy(&mut reader, &mut writer).unwrap_or_else(|_| {
+                        panic!(
+                            "#[derive(StaticFileMap)] error reading/compressing file: {}",
+                            source.display()
+                        )
+                    });
                 }
-                let buffer = encoder.finish().expect(&format!(
-                    "#[derive(StaticFileMap)] error compressing file: {}",
-                    source.display()
-                ));
-                buffer
+
+                encoder.finish().unwrap_or_else(|_| {
+                    panic!(
+                        "#[derive(StaticFileMap)] error compressing file: {}",
+                        source.display()
+                    )
+                })
             } else {
                 let mut reader = BufReader::new(&file);
                 let mut writer = BufWriter::new(Vec::new());
-                copy(&mut reader, &mut writer).expect(&format!(
-                    "#[derive(StaticFileMap)] error reading file: {}",
-                    source.display()
-                ));
+                copy(&mut reader, &mut writer).unwrap_or_else(|_| {
+                    panic!(
+                        "#[derive(StaticFileMap)] error reading file: {}",
+                        source.display()
+                    )
+                });
                 Vec::from(writer.buffer())
-            };
-            buffer
+            }
         })
         .collect::<Vec<Vec<u8>>>();
 
