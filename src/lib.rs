@@ -2,7 +2,7 @@ extern crate proc_macro;
 
 use minilz4::{BlockMode, BlockSize, EncoderBuilder};
 use proc_macro::TokenStream;
-use quote::{format_ident, quote};
+use quote::quote;
 use std::{
     env::var,
     fs::File,
@@ -157,8 +157,6 @@ pub fn file_map(input: TokenStream) -> TokenStream {
         .collect::<Vec<Vec<u8>>>();
 
     let ident = &input.ident;
-    let data_ident = format_ident!("{}Data", ident);
-    let trait_ident = format_ident!("{}Trait", ident);
     let map_data = data
         .iter()
         .map(|data| {
@@ -170,36 +168,35 @@ pub fn file_map(input: TokenStream) -> TokenStream {
 
     let result = quote! {
 
-        #[allow(non_upper_case_globals)]
-        static #data_ident : &'static [ &'static [u8] ; #len ] = &[ #( #map_data ),* ];
-
-        trait #trait_ident {
-            fn keys() -> &'static [&'static str; #len ];
-            fn get<S: ::core::convert::AsRef<str>>(name: S) -> ::core::option::Option<&'static [u8]>;
-            fn get_match<S: ::core::convert::AsRef<str>>(name: S) -> ::core::option::Option<&'static [u8]>;
-        }
-
-        impl #trait_ident for #ident {
+        impl #ident {
             #[inline]
-            fn keys() -> &'static [&'static str; #len ] {
+            pub fn keys() -> &'static [&'static str; #len ] {
                 static _k: &'static [&'static str; #len ] = &[ #( #names ),* ];
                 _k
             }
             #[inline]
-            fn get<S: ::core::convert::AsRef<str>>(name: S) -> ::core::option::Option<&'static [u8]> {
-                let name = name.as_ref();
-                #(
-                    if name == #names {
-                        return Some( #data_ident [ #ids1 ] );
-                    }
-                )*
-                None
+            pub fn data() -> &'static [ &'static [u8] ; #len ] {
+                static _d : &'static [ &'static [u8] ; #len ] = &[ #( #map_data ),* ];
+                _d
+            }
+            #[inline]
+            pub fn get_index(index: usize) -> &'static [u8] {
+                Self::data()[index]
+            }
+            #[inline]
+            pub fn get<S: ::core::convert::AsRef<str>>(name: S) -> ::core::option::Option<&'static [u8]> {
+                match name.as_ref() {
+                    #(
+                        #names => Some( Self::get_index( #ids1 )),
+                    )*
+                    _ => None
+                }
             }
             #[allow(clippy::useless_let_if_seq)]
-            fn get_match<S: ::core::convert::AsRef<str>>(name: S) -> ::core::option::Option<&'static [u8]> {
-                let name = name.as_ref();
+            pub fn get_match<S: ::core::convert::AsRef<str>>(name: S) -> ::core::option::Option<&'static [u8]> {
                 let mut matches = 0;
                 let mut matching = 0;
+                let name = name.as_ref();
                 #(
                     if #names.contains(name) {
                         if matches == 1 {
@@ -210,9 +207,11 @@ pub fn file_map(input: TokenStream) -> TokenStream {
                     }
                 )*
                 if matches == 1 {
-                    return Some( #data_ident [matching] );
+                    Some(Self::get_index(matching))
                 }
-                None
+                else {
+                    None
+                }
             }
         }
     };
