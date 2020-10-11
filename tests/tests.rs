@@ -26,8 +26,9 @@ fn get_match() {
     assert!(&string == "Copyright ");
 }
 
+#[cfg(feature = "lz4")]
 #[test]
-fn compression() {
+fn compression_lz4() {
     use minilz4::Decoder;
     use staticfilemap::*;
     use std::io::Read;
@@ -48,6 +49,7 @@ fn compression() {
     assert!(&string == "Copyright ");
 }
 
+#[cfg(feature = "zstd")]
 #[test]
 fn compression_zstd() {
     use staticfilemap::*;

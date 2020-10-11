@@ -7,10 +7,12 @@ use std::{
     path::{Path, PathBuf},
 };
 
+#[cfg(feature = "lz4")]
 use minilz4::{BlockMode, BlockSize, EncoderBuilder};
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, DeriveInput, Lit, Meta, MetaNameValue};
+#[cfg(feature = "zstd")]
 use zstd::stream::copy_encode;
 
 #[proc_macro_derive(StaticFileMap, attributes(parse, names, files, compression, algorithm))]
@@ -129,40 +131,50 @@ pub fn file_map(input: TokenStream) -> TokenStream {
 
             if compression > 0 {
                 if algorithm == "lz4" {
-                    let mut encoder = EncoderBuilder::new()
-                        .auto_flush(false)
-                        .level(compression)
-                        .block_mode(BlockMode::Linked)
-                        .block_size(BlockSize::Max64KB)
-                        .build(Vec::new())
-                        .unwrap();
+                    #[cfg(feature = "lz4")]
                     {
+                        let mut encoder = EncoderBuilder::new()
+                            .auto_flush(false)
+                            .level(compression)
+                            .block_mode(BlockMode::Linked)
+                            .block_size(BlockSize::Max64KB)
+                            .build(Vec::new())
+                            .unwrap();
+                        {
+                            let mut reader = BufReader::new(&file);
+                            let mut writer = BufWriter::new(&mut encoder);
+                            copy(&mut reader, &mut writer).unwrap_or_else(|_| {
+                                panic!(
+                                    "#[derive(StaticFileMap)] error reading/compressing file: {}",
+                                    source.display()
+                                )
+                            });
+                        }
+
+                        encoder.finish().unwrap_or_else(|_| {
+                            panic!(
+                                "#[derive(StaticFileMap)] error compressing file: {}",
+                                source.display()
+                            )
+                        })
+                    }
+                    #[cfg(not(feature = "lz4"))]
+                    panic!("#[derive(StaticFileMap)] lz4 compression requested but lz4 feature not enabled")
+                } else {
+                    #[cfg(feature = "zstd")]
+                    {
+                        let mut data = Vec::new();
                         let mut reader = BufReader::new(&file);
-                        let mut writer = BufWriter::new(&mut encoder);
-                        copy(&mut reader, &mut writer).unwrap_or_else(|_| {
+                        copy_encode(&mut reader, &mut data, compression as i32).unwrap_or_else(|_| {
                             panic!(
                                 "#[derive(StaticFileMap)] error reading/compressing file: {}",
                                 source.display()
                             )
                         });
+                        data
                     }
-
-                    encoder.finish().unwrap_or_else(|_| {
-                        panic!(
-                            "#[derive(StaticFileMap)] error compressing file: {}",
-                            source.display()
-                        )
-                    })
-                } else {
-                    let mut data = Vec::new();
-                    let mut reader = BufReader::new(&file);
-                    copy_encode(&mut reader, &mut data, compression as i32).unwrap_or_else(|_| {
-                        panic!(
-                            "#[derive(StaticFileMap)] error reading/compressing file: {}",
-                            source.display()
-                        )
-                    });
-                    data
+                    #[cfg(not(feature = "zstd"))]
+                    panic!("#[derive(StaticFileMap)] zstd compression requested but zstd feature not enabled")
                 }
             } else {
                 let mut reader = BufReader::new(&file);
