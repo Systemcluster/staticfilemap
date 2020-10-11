@@ -28,3 +28,4 @@ minilz4 = "^0.4"
 proc-macro2 = "^1"
 quote = "^1"
 syn = {version = "^1", features = ["parsing"]}
+zstd = "^0.5"

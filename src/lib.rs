@@ -1,25 +1,27 @@
 extern crate proc_macro;
 
-use minilz4::{BlockMode, BlockSize, EncoderBuilder};
-use proc_macro::TokenStream;
-use quote::quote;
 use std::{
     env::var,
     fs::File,
     io::{copy, BufReader, BufWriter},
     path::{Path, PathBuf},
 };
-use syn::{parse_macro_input, DeriveInput, Lit, Meta, MetaNameValue};
 
-#[proc_macro_derive(StaticFileMap, attributes(parse, names, files, compression))]
+use minilz4::{BlockMode, BlockSize, EncoderBuilder};
+use proc_macro::TokenStream;
+use quote::quote;
+use syn::{parse_macro_input, DeriveInput, Lit, Meta, MetaNameValue};
+use zstd::stream::copy_encode;
+
+#[proc_macro_derive(StaticFileMap, attributes(parse, names, files, compression, algorithm))]
 pub fn file_map(input: TokenStream) -> TokenStream {
     let input: DeriveInput = parse_macro_input!(input as DeriveInput);
 
     let get_attr = |name| {
-        input.attrs.iter().find(|attr| match attr.path.get_ident() {
-            Some(ident) if *ident == name => true,
-            _ => false,
-        })
+        input
+            .attrs
+            .iter()
+            .find(|attr| matches!(attr.path.get_ident(), Some(ident) if *ident == name))
     };
     let get_attr_str = |name, default: Option<String>| {
         match get_attr(name) {
@@ -48,10 +50,18 @@ pub fn file_map(input: TokenStream) -> TokenStream {
         .unwrap_or_else(|| panic!("#[derive(StaticFileMap)] invalid or missing attribute: #[{} = ..], must be a positive number", name))
     };
 
-    let parse = get_attr_str("parse", Some("string".to_string()));
+    let parse = get_attr_str("parse", Some("string".to_string())).to_lowercase();
     let mut names = get_attr_str("names", Some("".to_string()));
     let mut files = get_attr_str("files", None);
     let compression = get_attr_num("compression", Some(0));
+    let algorithm = get_attr_str("algorithm", Some("lz4".to_string())).to_lowercase();
+
+    if !["lz4", "zstd"].contains(&algorithm.as_str()) {
+        panic!(format!(
+            "#[derive(StaticFileMap)] #[algorithm = ..] supports the following values: \"lz4\", \"zstd\", got \"{}\"",
+            &parse
+        ))
+    }
 
     if ["env"].contains(&parse.as_str()) {
         files = var(&files).unwrap_or_else(|_| {
@@ -69,12 +79,12 @@ pub fn file_map(input: TokenStream) -> TokenStream {
             });
         }
     } else if ["string"].contains(&parse.as_str()) {
-        names = names;
-        files = files;
+        // no change
     } else {
-        panic!(
-            "#[derive(StaticFileMap)] #[parse = ..] supports the following values: \"env\", \"string\""
-        )
+        panic!(format!(
+            "#[derive(StaticFileMap)] #[parse = ..] supports the following values: \"env\", \"string\", got \"{}\"",
+            &parse
+        ))
     }
 
     let mut names = names
@@ -118,30 +128,42 @@ pub fn file_map(input: TokenStream) -> TokenStream {
             });
 
             if compression > 0 {
-                let mut encoder = EncoderBuilder::new()
-                    .auto_flush(false)
-                    .level(compression)
-                    .block_mode(BlockMode::Linked)
-                    .block_size(BlockSize::Max64KB)
-                    .build(Vec::new())
-                    .unwrap();
-                {
+                if algorithm == "lz4" {
+                    let mut encoder = EncoderBuilder::new()
+                        .auto_flush(false)
+                        .level(compression)
+                        .block_mode(BlockMode::Linked)
+                        .block_size(BlockSize::Max64KB)
+                        .build(Vec::new())
+                        .unwrap();
+                    {
+                        let mut reader = BufReader::new(&file);
+                        let mut writer = BufWriter::new(&mut encoder);
+                        copy(&mut reader, &mut writer).unwrap_or_else(|_| {
+                            panic!(
+                                "#[derive(StaticFileMap)] error reading/compressing file: {}",
+                                source.display()
+                            )
+                        });
+                    }
+
+                    encoder.finish().unwrap_or_else(|_| {
+                        panic!(
+                            "#[derive(StaticFileMap)] error compressing file: {}",
+                            source.display()
+                        )
+                    })
+                } else {
+                    let mut data = Vec::new();
                     let mut reader = BufReader::new(&file);
-                    let mut writer = BufWriter::new(&mut encoder);
-                    copy(&mut reader, &mut writer).unwrap_or_else(|_| {
+                    copy_encode(&mut reader, &mut data, compression as i32).unwrap_or_else(|_| {
                         panic!(
                             "#[derive(StaticFileMap)] error reading/compressing file: {}",
                             source.display()
                         )
                     });
+                    data
                 }
-
-                encoder.finish().unwrap_or_else(|_| {
-                    panic!(
-                        "#[derive(StaticFileMap)] error compressing file: {}",
-                        source.display()
-                    )
-                })
             } else {
                 let mut reader = BufReader::new(&file);
                 let mut writer = BufWriter::new(Vec::new());

@@ -5,7 +5,7 @@
 
 Procedural macro to create a static map of compressed files during compilation.
 
-Similar to `include_file!` or [`include_dir!`](https://crates.io/crates/include_dir), but accepts a list of files that can be specified through environment variables and supports compression with [LZ4](https://github.com/lz4/lz4).
+Similar to `include_file!` or [`include_dir!`](https://crates.io/crates/include_dir), but accepts a list of files that can be specified through environment variables and supports compression with [LZ4](https://github.com/lz4/lz4) or [zstd](https://github.com/facebook/zstd).
 
 ## Usage
 
@@ -16,6 +16,8 @@ These can either be strings containing values separated with `;`, or environment
 Relative paths are resolved relative to `CARGO_MANIFEST_DIR`. If the `names` attribute is not specified, the names are inferred from the filenames.
 
 The compression level is controlled by the `compression` attribute. With a compression level above `0` the included files are compresed with LZ4. LZ4 accepts a compression level up to `12`.
+
+Alternatively, zstd can be used for compression by setting the `algorithm` attribute to `zstd`. Zstd supports a compression level up to `21`.
 
 Files can be accessed as `&'static [u8]` slices by the `get(name)` and `get_match(name)` functions at runtime.
 `get_match(name)` accepts partial names if only one name matches. `keys()` returns a list of all keys.
@@ -61,5 +63,24 @@ fn main() {
     let compressed = StaticMap::get_match("diogenes")
         .expect("file matching diogenes was not included");
     let content = compressed.decode();
+}
+```
+
+```rust
+use staticfilemap::StaticFileMap
+use zstd::decode_all;
+
+#[derive(StaticFileMap)]
+#[parse = "env"]
+#[names = "FILENAMES"]
+#[files = "FILEPATHS"]
+#[compression = 8]
+#[algorithm = "zstd"]
+struct StaticMap;
+
+fn main() {
+    let mut compressed = StaticMap::get("diogenes.txt")
+        .expect("file diogenes.txt was not included");
+    let content = decode_all(&mut compressed);
 }
 ```

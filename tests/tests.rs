@@ -49,6 +49,25 @@ fn compression() {
 }
 
 #[test]
+fn compression_zstd() {
+    use staticfilemap::*;
+    use zstd::decode_all;
+
+    #[derive(StaticFileMap)]
+    #[names = "readme;license"]
+    #[files = "README.md;LICENSE"]
+    #[compression = 1]
+    #[algorithm = "zstd"]
+    struct StaticMap;
+
+    let mut compressed = StaticMap::get("license").unwrap();
+    let content = decode_all(&mut compressed).unwrap();
+
+    let string = String::from_utf8_lossy(&content[..10]);
+    assert!(&string == "Copyright ");
+}
+
+#[test]
 fn parse_env() {
     use staticfilemap::*;
 
