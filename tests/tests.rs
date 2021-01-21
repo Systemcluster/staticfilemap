@@ -120,3 +120,17 @@ fn implicit_names() {
     let string = String::from_utf8_lossy(&content[..10]);
     assert!(&string == "Copyright ");
 }
+
+#[test]
+fn iter() {
+    use staticfilemap::*;
+
+    #[derive(StaticFileMap)]
+    #[files = "README.md;LICENSE"]
+    struct StaticMap;
+
+    let data = StaticMap::iter().collect::<Vec<_>>();
+    assert!(data[1].0 == "LICENSE");
+    let string = String::from_utf8_lossy(&data[1].1);
+    assert!(&string[..10] == "Copyright ");
+}

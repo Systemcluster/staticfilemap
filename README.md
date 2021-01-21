@@ -3,7 +3,7 @@
 [![Crates.io](https://img.shields.io/crates/v/staticfilemap)](https://crates.io/crates/staticfilemap)
 [![Docs.rs](https://docs.rs/staticfilemap/badge.svg)](https://docs.rs/staticfilemap)
 
-Procedural macro to create a static map of compressed files during compilation.
+Procedural macro to create a static map of optionally compressed files during compilation.
 
 Similar to `include_file!` or [`include_dir!`](https://crates.io/crates/include_dir), but accepts a list of files that can be specified through environment variables and supports compression with [LZ4](https://github.com/lz4/lz4) or [zstd](https://github.com/facebook/zstd).
 
@@ -35,11 +35,11 @@ staticfilemap = "^0.1"
 ### Examples
 
 ```rust
-use staticfilemap::StaticFileMap
+use staticfilemap::StaticFileMap;
 
 #[derive(StaticFileMap)]
-#[names = "a;b;c"]
-#[files = "/path/to/file_a;/path/to/file_b;/path/to/file_c"]
+#[names = "a;b"]
+#[files = "README.md;LICENSE"]
 struct StaticMap;
 
 fn main() {
@@ -49,7 +49,7 @@ fn main() {
 ```
 
 ```rust
-use staticfilemap::StaticFileMap
+use staticfilemap::StaticFileMap;
 use minilz4::Decode;
 use std::io::Read;
 
@@ -68,7 +68,7 @@ fn main() {
 ```
 
 ```rust
-use staticfilemap::StaticFileMap
+use staticfilemap::StaticFileMap;
 use zstd::decode_all;
 
 #[derive(StaticFileMap)]
@@ -83,5 +83,19 @@ fn main() {
     let mut compressed = StaticMap::get("diogenes.txt")
         .expect("file diogenes.txt was not included");
     let content = decode_all(&mut compressed);
+}
+```
+
+```rust
+use staticfilemap::StaticFileMap;
+
+#[derive(StaticFileMap)]
+#[files = "README.md;LICENSE"]
+struct StaticMap;
+
+fn main() {
+    for (key, data) in StaticMap::iter() {
+        println!("{}: {}", key, String::from_utf8_lossy(data));
+    }
 }
 ```

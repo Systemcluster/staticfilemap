@@ -7,13 +7,15 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use proc_macro::TokenStream;
+use quote::{format_ident, quote};
+use syn::{parse_macro_input, DeriveInput, Lit, Meta, MetaNameValue};
+
 #[cfg(feature = "lz4")]
 use minilz4::{BlockMode, BlockSize, EncoderBuilder};
-use proc_macro::TokenStream;
-use quote::quote;
-use syn::{parse_macro_input, DeriveInput, Lit, Meta, MetaNameValue};
 #[cfg(feature = "zstd")]
 use zstd::stream::copy_encode;
+
 
 #[proc_macro_derive(StaticFileMap, attributes(parse, names, files, compression, algorithm))]
 pub fn file_map(input: TokenStream) -> TokenStream {
@@ -200,6 +202,8 @@ pub fn file_map(input: TokenStream) -> TokenStream {
     let ids1 = 0..len;
     let ids2 = 0..len;
 
+    let iter = format_ident!("{}Iterator", ident);
+
     let result = quote! {
 
         impl #ident {
@@ -214,10 +218,6 @@ pub fn file_map(input: TokenStream) -> TokenStream {
                 _d
             }
             #[inline]
-            pub fn get_index(index: usize) -> &'static [u8] {
-                Self::data()[index]
-            }
-            #[inline]
             pub fn get<S: ::core::convert::AsRef<str>>(name: S) -> ::core::option::Option<&'static [u8]> {
                 match name.as_ref() {
                     #(
@@ -225,6 +225,10 @@ pub fn file_map(input: TokenStream) -> TokenStream {
                     )*
                     _ => None
                 }
+            }
+            #[inline]
+            pub fn get_index(index: usize) -> &'static [u8] {
+                Self::data()[index]
             }
             #[allow(clippy::useless_let_if_seq)]
             pub fn get_match<S: ::core::convert::AsRef<str>>(name: S) -> ::core::option::Option<&'static [u8]> {
@@ -246,6 +250,30 @@ pub fn file_map(input: TokenStream) -> TokenStream {
                 else {
                     None
                 }
+            }
+            #[inline]
+            pub fn iter() -> #iter {
+                #iter { position: 0 }
+            }
+        }
+
+        struct #iter {
+            position: usize
+        }
+        impl ::core::iter::Iterator for #iter {
+            type Item = (&'static str, &'static [u8]);
+            #[inline]
+            fn next(&mut self) -> Option<Self::Item> {
+                if self.position >= #len {
+                    return None;
+                }
+                let ret = (#ident::keys()[self.position], #ident::data()[self.position]);
+                self.position += 1;
+                Some(ret)
+            }
+            #[inline]
+            fn size_hint(&self) -> (usize, Option<usize>) {
+                (#len - self.position, Some(#len - self.position))
             }
         }
     };
