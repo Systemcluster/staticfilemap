@@ -3,7 +3,7 @@
 [![Crates.io](https://img.shields.io/crates/v/staticfilemap)](https://crates.io/crates/staticfilemap)
 [![Docs.rs](https://docs.rs/staticfilemap/badge.svg)](https://docs.rs/staticfilemap)
 
-Procedural macro to create a static map of optionally compressed files during compilation.
+Procedural macro to embed optionally compressed files during compilation.
 
 Similar to `include_file!` or [`include_dir!`](https://crates.io/crates/include_dir), but accepts a list of files that can be specified through environment variables and supports compression with [LZ4](https://github.com/lz4/lz4) or [zstd](https://github.com/facebook/zstd).
 
@@ -29,7 +29,7 @@ See the examples, [the tests](tests/tests.rs) or [the implementation](src/lib.rs
 
 ```toml
 [dependencies]
-staticfilemap = "^0.1"
+staticfilemap = "^0.2"
 ```
 
 ### Examples
