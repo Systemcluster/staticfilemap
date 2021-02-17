@@ -61,10 +61,10 @@ pub fn file_map(input: TokenStream) -> TokenStream {
     let algorithm = get_attr_str("algorithm", Some("lz4".to_string())).to_lowercase();
 
     if !["lz4", "zstd"].contains(&algorithm.as_str()) {
-        panic!(format!(
+        panic!(
             "#[derive(StaticFileMap)] #[algorithm = ..] supports the following values: \"lz4\", \"zstd\", got \"{}\"",
             &parse
-        ))
+        )
     }
 
     if ["env"].contains(&parse.as_str()) {
@@ -85,10 +85,10 @@ pub fn file_map(input: TokenStream) -> TokenStream {
     } else if ["string"].contains(&parse.as_str()) {
         // no change
     } else {
-        panic!(format!(
+        panic!(
             "#[derive(StaticFileMap)] #[parse = ..] supports the following values: \"env\", \"string\", got \"{}\"",
             &parse
-        ))
+        )
     }
 
     let mut names = names
@@ -115,7 +115,9 @@ pub fn file_map(input: TokenStream) -> TokenStream {
 
     if names.len() != files.len() {
         panic!(
-            "#[derive(StaticFileMap)] #[names = ..] must contain the same number of items as #[files = ..]"
+            "#[derive(StaticFileMap)] #[names = ..] must contain the same number of items as #[files = ..], got {} names and {} files",
+            names.len(),
+            files.len()
         )
     }
     let len = names.len();
@@ -179,15 +181,18 @@ pub fn file_map(input: TokenStream) -> TokenStream {
                     panic!("#[derive(StaticFileMap)] zstd compression requested but zstd feature not enabled")
                 }
             } else {
-                let mut reader = BufReader::new(&file);
-                let mut writer = BufWriter::new(Vec::new());
-                copy(&mut reader, &mut writer).unwrap_or_else(|_| {
-                    panic!(
-                        "#[derive(StaticFileMap)] error reading file: {}",
-                        source.display()
-                    )
-                });
-                Vec::from(writer.buffer())
+                let mut buffer = Vec::new();
+                {
+                    let mut reader = BufReader::new(&file);
+                    let mut writer = BufWriter::new(&mut buffer);
+                    copy(&mut reader, &mut writer).unwrap_or_else(|_| {
+                        panic!(
+                            "#[derive(StaticFileMap)] error reading file: {}",
+                            source.display()
+                        )
+                    });
+                }
+                buffer
             }
         })
         .collect::<Vec<Vec<u8>>>();

@@ -76,7 +76,7 @@ fn parse_env() {
     #[derive(StaticFileMap)]
     #[parse = "env"]
     #[names = "CARGO_PKG_NAME"]
-    #[files = "CARGO"]
+    #[files = "CARGO_PKG_LICENSE_FILE"]
     struct StaticMap;
 
     let _ = StaticMap::get("staticfilemap").unwrap();
