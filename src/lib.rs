@@ -58,7 +58,7 @@ pub fn file_map(input: TokenStream) -> TokenStream {
     let mut names = get_attr_str("names", Some("".to_string()));
     let mut files = get_attr_str("files", None);
     let compression = get_attr_num("compression", Some(0));
-    let algorithm = get_attr_str("algorithm", Some("lz4".to_string())).to_lowercase();
+    let algorithm = get_attr_str("algorithm", Some("zstd".to_string())).to_lowercase();
 
     if !["lz4", "zstd"].contains(&algorithm.as_str()) {
         panic!(
@@ -146,8 +146,7 @@ pub fn file_map(input: TokenStream) -> TokenStream {
                             .unwrap();
                         {
                             let mut reader = BufReader::new(&file);
-                            let mut writer = BufWriter::new(&mut encoder);
-                            copy(&mut reader, &mut writer).unwrap_or_else(|_| {
+                            copy(&mut reader, &mut encoder).unwrap_or_else(|_| {
                                 panic!(
                                     "#[derive(StaticFileMap)] error reading/compressing file: {}",
                                     source.display()

@@ -3,7 +3,7 @@
 authors = ["Christian Sdunek <me@systemcluster.me>"]
 categories = ["filesystem", "compression", "no-std", "development-tools::build-utils"]
 description = "Procedural macro to create a static map of compressed files during compilation"
-edition = "2018"
+edition = "2021"
 include = [
   "Cargo.toml",
   "src/**/*",
@@ -23,9 +23,10 @@ proc-macro = true
 
 [features]
 
-default = ["lz4"]
-lz4 = ["minilz4"]
-multithread = ["zstd/zstdmt"]
+default = ["zstd"]
+zstd = ["dep:zstd"]
+lz4 = ["dep:minilz4"]
+multithread = ["zstd?/zstdmt"]
 
 [dependencies]
 
