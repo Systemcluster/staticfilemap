@@ -210,17 +210,16 @@ pub fn file_map(input: TokenStream) -> TokenStream {
     let iter = format_ident!("{}Iterator", ident);
 
     let result = quote! {
-
         impl #ident {
+            const _k: &'static [&'static str; #len ] = &[ #( #names ),* ];
             #[inline]
-            pub fn keys() -> &'static [&'static str; #len ] {
-                static _k: &'static [&'static str; #len ] = &[ #( #names ),* ];
-                _k
+            pub const fn keys() -> &'static [&'static str; #len ] {
+                Self::_k
             }
+            const _d : &'static [ &'static [u8] ; #len ] = &[ #( #map_data ),* ];
             #[inline]
-            pub fn data() -> &'static [ &'static [u8] ; #len ] {
-                static _d : &'static [ &'static [u8] ; #len ] = &[ #( #map_data ),* ];
-                _d
+            pub const fn data() -> &'static [ &'static [u8] ; #len ] {
+                Self::_d
             }
             #[inline]
             pub fn get<S: ::core::convert::AsRef<str>>(name: S) -> ::core::option::Option<&'static [u8]> {
@@ -236,7 +235,7 @@ pub fn file_map(input: TokenStream) -> TokenStream {
                 Self::data()[index]
             }
             #[allow(clippy::useless_let_if_seq)]
-            pub fn get_match<S: ::core::convert::AsRef<str>>(name: S) -> ::core::option::Option<&'static [u8]> {
+            pub fn get_match_index<S: ::core::convert::AsRef<str>>(name: S) -> ::core::option::Option<usize> {
                 let mut matches = 0;
                 let mut matching = 0;
                 let name = name.as_ref();
@@ -250,7 +249,15 @@ pub fn file_map(input: TokenStream) -> TokenStream {
                     }
                 )*
                 if matches == 1 {
-                    Some(Self::get_index(matching))
+                    Some(matching)
+                }
+                else {
+                    None
+                }
+            }
+            pub fn get_match<S: ::core::convert::AsRef<str>>(name: S) -> ::core::option::Option<&'static [u8]> {
+                if let Some(index) = Self::get_match_index(name) {
+                    Some(Self::get_index(index))
                 }
                 else {
                     None
