@@ -29,7 +29,7 @@ See the examples, [the tests](tests/tests.rs) or [the implementation](src/lib.rs
 
 ```toml
 [dependencies]
-staticfilemap = "^0.5"
+staticfilemap = "^0.6"
 ```
 
 ### Examples
