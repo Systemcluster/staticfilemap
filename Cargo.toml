@@ -32,8 +32,15 @@ multithread = ["zstd?/zstdmt"]
 
 [dependencies]
 
-minilz4 = {version = "^0.6", optional = true}
-zstd = {version = "^0.12", optional = true, default-features = false, features = ["arrays"]}
+minilz4 = { version = "^0.6", optional = true }
+zstd = { version = "^0.12", optional = true, default-features = false, features = [
+  "arrays",
+] }
 
 quote = "^1"
-syn = {version = "^1", features = ["parsing"]}
+syn = { version = "^2", features = ["parsing"] }
+
+[package.metadata.docs.rs]
+
+rustdoc-args = ["--cfg", "docsrs"]
+all-features = true

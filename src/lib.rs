@@ -9,7 +9,7 @@ use std::{
 
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
-use syn::{parse_macro_input, DeriveInput, Lit, Meta, MetaNameValue};
+use syn::{parse_macro_input, DeriveInput, Lit};
 
 #[cfg(feature = "lz4")]
 use minilz4::{BlockMode, BlockSize, EncoderBuilder};
@@ -25,33 +25,34 @@ pub fn file_map(input: TokenStream) -> TokenStream {
         input
             .attrs
             .iter()
-            .find(|attr| matches!(attr.path.get_ident(), Some(ident) if *ident == name))
+            .find(|attr| matches!(attr.path().get_ident(), Some(ident) if *ident == name))
     };
     let get_attr_str = |name, default: Option<String>| {
         match get_attr(name) {
             None => default,
-            Some(attr) => match attr.parse_meta() {
-                Ok(Meta::NameValue(MetaNameValue {
-                    lit: Lit::Str(value),
-                    ..
-                })) => Some(value.value()),
-                _ => None,
-            },
+            Some(attr) =>
+                attr.parse_args()
+                    .ok()
+                    .and_then(|lit: Lit| match lit {
+                        Lit::Str(value) => Some(value.value()),
+                        _ => None
+                    })
         }
-        .unwrap_or_else(|| panic!("#[derive(StaticFileMap)] invalid or missing attribute: #[{} = ..], must be a string", name))
+        .unwrap_or_else(|| panic!("#[derive(StaticFileMap)] invalid or missing attribute: #[{}(..)], must be a string", name))
     };
     let get_attr_num = |name, default: Option<u32>| {
         match get_attr(name) {
             None => default,
-            Some(attr) => match attr.parse_meta() {
-                Ok(Meta::NameValue(MetaNameValue {
-                    lit: Lit::Int(value),
-                    ..
-                })) => value.base10_parse::<u32>().ok(),
-                _ => None,
-            },
+            Some(attr) =>
+                attr.parse_args()
+                .ok()
+                .and_then(|lit: Lit| match lit {
+                    Lit::Int(value) => value.base10_parse::<u32>().ok(),
+                    _ => None
+                })
+
         }
-        .unwrap_or_else(|| panic!("#[derive(StaticFileMap)] invalid or missing attribute: #[{} = ..], must be a positive number", name))
+        .unwrap_or_else(|| panic!("#[derive(StaticFileMap)] invalid or missing attribute: #[{}(..)], must be a positive number", name))
     };
 
     let parse = get_attr_str("parse", Some("string".to_string())).to_lowercase();
@@ -62,7 +63,7 @@ pub fn file_map(input: TokenStream) -> TokenStream {
 
     if !["lz4", "zstd"].contains(&algorithm.as_str()) {
         panic!(
-            "#[derive(StaticFileMap)] #[algorithm = ..] supports the following values: \"lz4\", \"zstd\", got \"{}\"",
+            "#[derive(StaticFileMap)] #[algorithm(..)] supports the following values: \"lz4\", \"zstd\", got \"{}\"",
             &parse
         )
     }
@@ -70,14 +71,14 @@ pub fn file_map(input: TokenStream) -> TokenStream {
     if ["env"].contains(&parse.as_str()) {
         files = var(&files).unwrap_or_else(|_| {
             panic!(
-                "#[derive(StaticFileMap)] #[files = ..] environment variable {} not found",
+                "#[derive(StaticFileMap)] #[files(..)] environment variable {} not found",
                 files
             )
         });
         if !names.is_empty() {
             names = var(&names).unwrap_or_else(|_| {
                 panic!(
-                    "#[derive(StaticFileMap)] #[names = ..] environment variable {} not found",
+                    "#[derive(StaticFileMap)] #[names(..)] environment variable {} not found",
                     names
                 )
             });
@@ -86,7 +87,7 @@ pub fn file_map(input: TokenStream) -> TokenStream {
         // no change
     } else {
         panic!(
-            "#[derive(StaticFileMap)] #[parse = ..] supports the following values: \"env\", \"string\", got \"{}\"",
+            "#[derive(StaticFileMap)] #[parse(..)] supports the following values: \"env\", \"string\", got \"{}\"",
             &parse
         )
     }
@@ -115,7 +116,7 @@ pub fn file_map(input: TokenStream) -> TokenStream {
 
     if names.len() != files.len() {
         panic!(
-            "#[derive(StaticFileMap)] #[names = ..] must contain the same number of items as #[files = ..], got {} names and {} files",
+            "#[derive(StaticFileMap)] #[names(..)] must contain the same number of items as #[files(..)], got {} names and {} files",
             names.len(),
             files.len()
         )

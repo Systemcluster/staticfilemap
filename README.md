@@ -15,7 +15,7 @@ Specify the files to be included and the names they should be accessed by with t
 These can either be strings containing values separated with `;`, or environment variables containing them when the `parse` attribute is set to `env`.
 Relative paths are resolved relative to `CARGO_MANIFEST_DIR`. If the `names` attribute is not specified, the names are inferred from the filenames.
 
-The compression level is controlled by the `compression` attribute. With a compression level above `0` the included files are compresed with Zstd. Zstd supports a compression level up to `21`.
+The compression level is controlled by the `compression` attribute. With a compression level above `0` the included files are compresed with Zstd. Zstd supports a compression level up to `22`.
 Alternatively, LZ4 can be used for compression by setting the `algorithm` attribute to `lz4`. LZ4 accepts a compression level up to `12`.
 
 The cargo features `zstd` and `lz4` are available to select compression support. `zstd` is enabled by default.
@@ -38,8 +38,8 @@ staticfilemap = "^0.5"
 use staticfilemap::StaticFileMap;
 
 #[derive(StaticFileMap)]
-#[names = "a;b"]
-#[files = "README.md;LICENSE"]
+#[names("a;b")]
+#[files("README.md;LICENSE")]
 struct StaticMap;
 
 fn main() {
@@ -55,10 +55,10 @@ use std::io::Read;
 
 #[derive(StaticFileMap)]
 #[parse = "env"]
-#[names = "FILENAMES"]
-#[files = "FILEPATHS"]
-#[compression = 8]
-#[algorithm = "lz4"]
+#[names("FILENAMES")]
+#[files("FILEPATHS")]
+#[compression(8)]
+#[algorithm("lz4")]
 struct StaticMap;
 
 fn main() {
@@ -74,9 +74,9 @@ use zstd::decode_all;
 
 #[derive(StaticFileMap)]
 #[parse = "env"]
-#[names = "FILENAMES"]
-#[files = "FILEPATHS"]
-#[compression = 8]
+#[names("FILENAMES")]
+#[files("FILEPATHS")]
+#[compression(8)]
 struct StaticMap;
 
 fn main() {
@@ -90,7 +90,7 @@ fn main() {
 use staticfilemap::StaticFileMap;
 
 #[derive(StaticFileMap)]
-#[files = "README.md;LICENSE"]
+#[files("README.md;LICENSE")]
 struct StaticMap;
 
 fn main() {
