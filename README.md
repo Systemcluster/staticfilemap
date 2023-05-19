@@ -54,7 +54,7 @@ use minilz4::Decode;
 use std::io::Read;
 
 #[derive(StaticFileMap)]
-#[parse = "env"]
+#[parse("env")]
 #[names("FILENAMES")]
 #[files("FILEPATHS")]
 #[compression(8)]
@@ -73,7 +73,7 @@ use staticfilemap::StaticFileMap;
 use zstd::decode_all;
 
 #[derive(StaticFileMap)]
-#[parse = "env"]
+#[parse("env")]
 #[names("FILENAMES")]
 #[files("FILEPATHS")]
 #[compression(8)]

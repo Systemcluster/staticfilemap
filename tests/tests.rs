@@ -36,8 +36,8 @@ fn compression_lz4() {
     #[derive(StaticFileMap)]
     #[names("readme;license")]
     #[files("README.md;LICENSE")]
-    #[compression = 1]
-    #[algorithm = "lz4"]
+    #[compression(1)]
+    #[algorithm("lz4")]
     struct StaticMap;
 
     let compressed = StaticMap::get("license").unwrap();
