@@ -1,0 +1,60 @@
+name: Publish
+
+on:
+  workflow_run:
+    branches:
+      - master
+    workflows:
+      - Tests & Checks
+    types:
+      completed
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  checks: write
+  statuses: write
+
+jobs:
+
+  publish:
+
+    name: Publish
+    runs-on: ${{ matrix.os }}
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+        toolchain:
+          - stable
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Update dependencies
+        run: cargo update
+
+      - name: Set up Rust toolchain
+        env:
+          RUSTUP_TOOLCHAIN: ${{ matrix.toolchain }}
+        uses: moonrepo/setup-rust@v0
+        with:
+          profile: minimal
+          cache: true
+          cache-target: debug
+
+      - name: Run tests
+        run: cargo test --workspace --all-features
+
+      - name: Publish
+        uses: katyo/publish-crates@v2
+        if: github.ref == 'refs/heads/master' && github.repository_owner == 'Systemcluster'
+        with:
+          registry-token: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          dry-run: ${{ !secrets.CARGO_REGISTRY_TOKEN }}
+          ignore-unpublished-changes: true
