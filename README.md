@@ -1,7 +1,8 @@
 # staticfilemap
 
 [![Crates.io](https://img.shields.io/crates/v/staticfilemap)](https://crates.io/crates/staticfilemap)
-[![Docs.rs](https://docs.rs/staticfilemap/badge.svg)](https://docs.rs/staticfilemap)
+[![Docs.rs](https://img.shields.io/docsrs/staticfilemap)](https://docs.rs/staticfilemap)
+[![Tests & Checks](https://img.shields.io/github/actions/workflow/status/Systemcluster/staticfilemap/tests.yml?label=tests%20%26%20checks)](https://github.com/Systemcluster/staticfilemap/actions/workflows/tests.yml)
 
 Procedural macro to embed optionally compressed files during compilation.
 
