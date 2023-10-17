@@ -33,7 +33,7 @@ multithread = ["zstd?/zstdmt"]
 [dependencies]
 
 minilz4 = { version = "^0.6", optional = true }
-zstd = { version = "^0.12", optional = true, default-features = false, features = [
+zstd = { version = "^0.13", optional = true, default-features = false, features = [
   "arrays",
 ] }
 
