@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   checks: write
   statuses: write
 
@@ -32,29 +32,23 @@ jobs:
 
     steps:
       - name: Checkout source
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: recursive
-
-      - name: Update dependencies
-        run: cargo update
+          show-progress: false
 
       - name: Set up Rust toolchain
-        env:
-          RUSTUP_TOOLCHAIN: ${{ matrix.toolchain }}
-        uses: moonrepo/setup-rust@v0
+        uses: Systemcluster/actions@setup-rust-v0
         with:
-          profile: minimal
-          cache: true
-          cache-target: debug
+          channel: ${{ matrix.toolchain }}
+          cache-key-job: true
 
       - name: Run tests
         run: cargo test --workspace --all-features
 
       - name: Publish
-        uses: katyo/publish-crates@v2
+        uses: Systemcluster/actions@release-crates-v0
         if: github.ref == 'refs/heads/master' && github.repository_owner == 'Systemcluster'
         with:
-          registry-token: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          crates-token: ${{ secrets.CARGO_REGISTRY_TOKEN }}
           dry-run: ${{ !secrets.CARGO_REGISTRY_TOKEN }}
-          ignore-unpublished-changes: true

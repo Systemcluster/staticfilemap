@@ -35,29 +35,23 @@ jobs:
 
     steps:
       - name: Checkout source
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: recursive
-
-      - name: Update dependencies
-        run: cargo update
+          show-progress: false
 
       - name: Set up Rust toolchain
-        env:
-          RUSTUP_TOOLCHAIN: ${{ matrix.toolchain }}
-        uses: moonrepo/setup-rust@v0
+        uses: Systemcluster/actions@setup-rust-v0
         with:
-          profile: minimal
+          channel: ${{ matrix.toolchain }}
           components: clippy
-          bins: cargo-action-fmt
-          cache: true
-          cache-target: debug
+          cache-key-job: true
 
       - name: Check build
-        run: cargo check --workspace --all-features -q --message-format=json | cargo-action-fmt
+        run: cargo check --workspace --all-features
 
       - name: Check clippy
-        run: cargo clippy --workspace --all-features -q --message-format=json | cargo-action-fmt
+        run: cargo clippy --workspace --all-features
 
   tests:
 
@@ -75,21 +69,16 @@ jobs:
 
     steps:
       - name: Checkout source
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: recursive
-
-      - name: Update dependencies
-        run: cargo update
+          show-progress: false
 
       - name: Set up Rust toolchain
-        env:
-          RUSTUP_TOOLCHAIN: ${{ matrix.toolchain }}
-        uses: moonrepo/setup-rust@v0
+        uses: Systemcluster/actions@setup-rust-v0
         with:
-          profile: minimal
-          cache: true
-          cache-target: debug
+          channel: ${{ matrix.toolchain }}
+          cache-key-job: true
 
       - name: Run tests
         run: cargo test --workspace --all-features
@@ -110,21 +99,17 @@ jobs:
 
     steps:
       - name: Checkout source
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: recursive
-
-      - name: Update dependencies
-        run: cargo update
+          show-progress: false
 
       - name: Set up Rust toolchain
-        env:
-          RUSTUP_TOOLCHAIN: ${{ matrix.toolchain }}
-        uses: moonrepo/setup-rust@v0
+        uses: Systemcluster/actions@setup-rust-v0
         with:
-          profile: minimal
+          channel: ${{ matrix.toolchain }}
           components: rustfmt
-          cache: true
+          cache-key-job: true
 
       - name: Check formatting
         uses: mbrobbel/rustfmt-check@master
