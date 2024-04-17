@@ -204,8 +204,6 @@ pub fn file_map(input: TokenStream) -> TokenStream {
             quote! { &[ #( #data ),* ] }
         })
         .collect::<Vec<_>>();
-    let ids1 = 0..len;
-    let ids2 = 0..len;
 
     let iter = format_ident!("{}Iterator", ident);
 
@@ -223,31 +221,32 @@ pub fn file_map(input: TokenStream) -> TokenStream {
             }
             #[inline]
             pub fn get<S: ::core::convert::AsRef<str>>(name: S) -> ::core::option::Option<&'static [u8]> {
-                match name.as_ref() {
-                    #(
-                        #names => Some( Self::get_index( #ids1 )),
-                    )*
-                    _ => None
+                let name = name.as_ref();
+                for (i, key) in Self::keys().iter().enumerate() {
+                    if key == &name {
+                        return Some(Self::get_index(i));
+                    }
                 }
+                None
             }
             #[inline]
-            pub fn get_index(index: usize) -> &'static [u8] {
+            pub const fn get_index(index: usize) -> &'static [u8] {
                 Self::data()[index]
             }
-            #[allow(clippy::useless_let_if_seq)]
+            #[inline]
             pub fn get_match_index<S: ::core::convert::AsRef<str>>(name: S) -> ::core::option::Option<usize> {
                 let mut matches = 0;
                 let mut matching = 0;
                 let name = name.as_ref();
-                #(
-                    if #names.contains(name) {
+                for (i, key) in Self::keys().iter().enumerate() {
+                    if key.contains(name) {
                         if matches == 1 {
                             return None;
                         }
                         matches += 1;
-                        matching = #ids2 ;
+                        matching = i;
                     }
-                )*
+                }
                 if matches == 1 {
                     Some(matching)
                 }
@@ -255,6 +254,7 @@ pub fn file_map(input: TokenStream) -> TokenStream {
                     None
                 }
             }
+            #[inline]
             pub fn get_match<S: ::core::convert::AsRef<str>>(name: S) -> ::core::option::Option<&'static [u8]> {
                 if let Some(index) = Self::get_match_index(name) {
                     Some(Self::get_index(index))
@@ -264,7 +264,7 @@ pub fn file_map(input: TokenStream) -> TokenStream {
                 }
             }
             #[inline]
-            pub fn iter() -> #iter {
+            pub const fn iter() -> #iter {
                 #iter { position: 0 }
             }
         }
@@ -288,6 +288,7 @@ pub fn file_map(input: TokenStream) -> TokenStream {
                 (#len - self.position, Some(#len - self.position))
             }
         }
+        impl ::core::iter::ExactSizeIterator for #iter {}
     };
     result.into()
 }
