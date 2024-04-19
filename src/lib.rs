@@ -268,6 +268,13 @@ pub fn file_map(input: TokenStream) -> TokenStream {
                 #iter { position: 0 }
             }
         }
+        impl ::core::fmt::Debug for #ident {
+            fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+                f.debug_struct(stringify!(#ident))
+                    .field("keys", &Self::keys())
+                    .finish()
+            }
+        }
 
         struct #iter {
             position: usize

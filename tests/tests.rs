@@ -135,3 +135,17 @@ fn iter() {
     let string = String::from_utf8_lossy(data[1].1);
     assert!(&string[..10] == "Copyright ");
 }
+
+#[test]
+fn debug() {
+    use staticfilemap::*;
+
+    #[derive(StaticFileMap)]
+    #[files("README.md;LICENSE")]
+    struct StaticMap;
+
+    let debug = format!("{:?}", StaticMap);
+    assert!(debug.contains("StaticMap {"));
+    assert!(debug.contains("README.md"));
+    assert!(debug.contains("LICENSE"));
+}
