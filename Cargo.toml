@@ -2,7 +2,7 @@
 
 authors = ["Christian Sdunek <me@systemcluster.me>"]
 categories = ["filesystem", "compression", "no-std", "development-tools::build-utils"]
-description = "Procedural macro to embed optionally compressed files during compilation"
+description = "Procedural macro to embed files during compilation with optional compression"
 edition = "2021"
 include = [
   "Cargo.toml",
@@ -14,8 +14,8 @@ license-file = "LICENSE"
 name = "staticfilemap"
 readme = "README.md"
 repository = "https://github.com/Systemcluster/staticfilemap"
-version = "0.7.0"
-keywords = ["include", "embed", "assets", "compression"]
+version = "0.8.0"
+keywords = ["include", "embed", "assets", "compression", "zstd"]
 
 [lib]
 
@@ -33,9 +33,7 @@ multithread = ["zstd?/zstdmt"]
 [dependencies]
 
 minilz4 = { version = "^0.6", optional = true }
-zstd = { version = "^0.13", optional = true, default-features = false, features = [
-  "arrays",
-] }
+zstd = { version = "^0.13", optional = true, default-features = false, features = [] }
 
 quote = "^1"
 syn = { version = "^2", features = ["parsing"] }
